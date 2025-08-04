@@ -2,83 +2,130 @@
 
 This pipeline simulates and processes user activity events in real time using Apache Kafka and PostgreSQL. It supports late-arriving events, event corrections, and deletions. It includes validation and integration testing to ensure data correctness and observability metrics for ingestion monitoring.
 
-## a. Setup & Run Instructions
+## A. Setup & Run Instructions
 
-## 1. Prerequisites
-- [Python 3.13.5](https://www.python.org/downloads/windows/](https://www.python.org/ftp/python/3.13.5/python-3.13.5-amd64.exe))
-- [PostgreSQL](https://sbp.enterprisedb.com/getfile.jsp?fileid=1259622&_gl=1*lzk3tu*_gcl_au*MTE3NTY4NzgxMy4xNzU0MjExMTcz*_ga*R0ExLjEuR0ExLjEuR0ExLjEuR0ExLjEuODkzNjQ0OTU4LjE3NTQyMTExNzM.*_ga_ND3EP1ME7G*czE3NTQyMTExNzIkbzEkZzEkdDE3NTQyNDMxNzYkajYwJGwwJGgxNDg5MDg3Mzk1)
-- Kafka (local setup)
-  #### 1. Install Java (JDK 11 or later)
-    - Download: https://adoptium.net/  
-    - Add `JAVA_HOME` to environment variables.
+### 1. Prerequisites
+- Python 3.10+ [https://www.python.org/downloads/windows/](https://www.python.org/downloads/windows/)
+- Kafka & Zookeeper [https://kafka.apache.org/downloads](https://kafka.apache.org/downloads)
+  - Choose the latest binary release (e.g., "Scala 2.13 – kafka_2.x").
+  - Extract the downloaded Kafka ZIP file (e.g., kafka_2.13-3.9.1) to a folder like:
+    <pre lang="makefile">
+    C:\kafka
+    </pre>
+- PostgreSQL (with `user_events` DB created) [https://www.postgresql.org/download/windows/](https://www.postgresql.org/download/windows/)
+- Python dependencies:
+  <pre lang="bash">pip install -r requirements.txt</pre>
 
-    #### Set `JAVA_HOME` (important)
+### 2. PostgreSQL Setup
+Create schema:
+<pre lang="sql">
+-- Create the database (optional if already created)
+CREATE DATABASE user_events;
+</pre>
+<pre lang="sql">
+-- Create the events table
+CREATE TABLE IF NOT EXISTS events (
+    event_id UUID PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    event_type TEXT NOT NULL,
+    event_time TIMESTAMPTZ NOT NULL,
+    received_time TIMESTAMPTZ NOT NULL,
+    is_valid BOOLEAN NOT NULL
+);
+</pre>
 
-    After installing:
+### 3. Start Zookeeper
+Kafka uses Zookeeper as a dependency. Run in a Command Prompt:
+<pre lang="cmd">
+cd C:\kafka
+.\bin\windows\zookeeper-server-start.bat .\config\zookeeper.properties
+</pre>
+Keep this terminal open.
 
-    A. Press `Win + S` -> Search for “Environment Variables”
-  
-    B. Under **System Variables**, click **New**:
-        - **Variable name:** `JAVA_HOME`  
-        - **Variable value:** e.g., `C:\Program Files\Eclipse Adoptium\jdk-17.0.x`
+### 4. Start Kafka Broker
+Open a new Command Prompt, and run:
+<pre lang="cmd">
+set KAFKA_HEAP_OPTS=-Xmx512M -Xms512M
+</pre>
+Then launch Kafka:
+<pre lang="cmd">
+cd C:\kafka
+.\bin\windows\zookeeper-server-start.bat .\config\zookeeper.properties
+</pre>
 
-    C. Edit the **Path** variable:
-        - Add: `%JAVA_HOME%\bin`
+### 5. Run Producer
+<pre lang="bash">
+python producer/simulate_stream.py
+</pre>
 
-    #### 2. Install Apache Kafka (Binary Release)
+### 6. Run Consumer
+<pre lang="bash">
+python consumer/consume_events.py
+</pre>
 
-    - [Download Kafka:](https://kafka.apache.org/downloads)
-    - Choose the latest binary release (e.g., "Scala 2.13 – Kafka 3.x").
+### 7. Validate Data
+<pre lang="bash">
+python validation/validate_data.py
+</pre>
 
-    #### Steps to Set Up Kafka on Windows
-
-    #### A. Extract Kafka
-    Extract the downloaded Kafka ZIP file (e.g., `kafka_2.13-3.6.0`) to a folder like: 
-      <pre lang="markdown">  C:\kafka  </pre>
-
-    #### B. Start Zookeeper (Kafka’s dependency)
-    Kafka uses Zookeeper to manage the cluster. Run this in **Command Prompt**:
-    <pre lang="markdown"> cd C:\kafka.\bin\windows\zookeeper-server-start.bat .\config\zookeeper.properties </pre>
-
-    Keep this terminal open.
-
-    #### C. Start Kafka Broker
-    In a new Command Prompt window:
-
-    <pre lang="markdown"> cd C:\kafka.\bin\windows\kafka-server-start.bat .\config\server.properties </pre>
-
-    #### Test Kafka Setup
-
-    #### D. Create a Topic
-    <pre lang="markdown"> cd C:\kafka.\bin\windows\kafka-topics.bat --create --topic test-topic --bootstrap-server localhost:9092 --partitions 1 --replication-factor 1 </pre>
-
-    #### E. Start a Producer
-    <pre lang="markdown"> .\bin\windows\kafka-console-producer.bat --topic test-topic --bootstrap-server localhost:9092 </pre>
-
-    Type messages and hit Enter.
-
-    #### F. Start a Consumer
-    Open another terminal:
-    <pre lang="markdown"> .\bin\windows\kafka-console-consumer.bat --topic test-topic --from-beginning --bootstrap-server localhost:9092 </pre>
-
-    You should see the messages typed in the producer console.
-
-    #### If error encounter wmic command (C:\kafka>.\bin\windows\kafka-server-start.bat .\config\server.properties
-    'wmic' is not recognized as an internal or external command,operable program or batch file.)
-
-
-    #### Step-by-Step Fix for 'wmic' is not recognized in Kafka on Windows
-
-
-    #### 1. Set the broker ID manually
-    Edit server.properties to avoid needing wmic.
-
-   <pre lang="markdown"> Open the file: C:\kafka\config\server.properties </pre>
-
-    #### 2. Add or edit the following line:
-    <pre lang="markdown"> Properties: broker.id=1 </pre>
-
-    #### 3. Save the file, close all and re-run:
-    <pre lang="markdown"> .\bin\windows\kafka-server-start.bat .\config\server.properties  </pre>
+### 8. Run Integration Tests
+<pre lang="bash">
+python tests/integration_test.py
+</pre>
 
 
+## B. Design Summary (tools, approach)
+**Tools Used**
+- Kafka: Stream ingestion
+- PostgreSQL: Event storage with deduplication
+- Python: Producer, Consumer, Validation
+- Confluent Kafka client: Kafka producer/consumer
+- JSON log: Backup and comparison for validation
+
+**Approach**
+- Events are produced with metadata (event_time, received_time, etc.).
+- Kafka Consumer inserts to PostgreSQL using event_id as primary key.
+- Validation script compares original .jsonl log with database contents.
+- Integration tests simulate real-world scenarios and log observability metrics.
+
+
+## C. Handling Strategy (for late data, duplicates, deletions)
+**At-Least-Once Delivery**
+- Kafka ensures retries until ack.
+- PostgreSQL deduplicates using `event_id` as `PRIMARY KEY`.
+
+**Late Data**
+- `event_time` and `received_time` are tracked separately.
+- Late data is accepted and inserted without loss.
+- Metrics report count of late events >30s.
+
+**Invalidation / Deletions**
+- Invalidation: Uses `is_valid = False` field.
+- Deletion: Tombstone message (`value=None`) deletes the row in DB.
+- Validation ensures invalidations and deletions are respected.
+
+**Observability & Metrics**
+- Metrics printed after integration tests:
+  - Total events
+  - Invalidated events
+  - Late arrivals
+  - Ingestion success
+- Uses Python logging for structured outputs.
+
+
+## D. Scaling Considerations for Production
+**Database**
+- Use partitioned tables by date for event_time.
+- Add indexing on `event_time`, `user_id`.
+
+**Kafka**
+- Use Kafka partitions per `user_id` hash for parallelism.
+- Enable log compaction for deduplication on the topic.
+
+**Consumers**
+- Add multiple Kafka consumers with group ID for horizontal scaling.
+- Implement retries with exponential backoff on transient DB errors.
+
+**Monitoring**
+- Add Prometheus + Grafana dashboards.
+- Alert on ingestion lag or invalidation failures.
