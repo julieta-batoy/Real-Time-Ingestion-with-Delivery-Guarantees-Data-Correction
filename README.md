@@ -43,6 +43,10 @@ cd C:\kafka
 Keep this terminal open.
 
 ### 4. Start Kafka Broker
+Go to C:\kafka\config and open the server.properties. Change the `broker.id` from 0 to 1.
+<pre lang="markdown">
+broker.id=1
+</pre>
 Open a new Command Prompt, and run:
 <pre lang="cmd">
 set KAFKA_HEAP_OPTS=-Xmx512M -Xms512M
