@@ -43,7 +43,7 @@ cd C:\kafka
 Keep this terminal open.
 
 ### 4. Start Kafka Broker
-Go to C:\kafka\config and open the server.properties. Change the `broker.id` from `0` to `1`.
+Go to `C:\kafka\config` and open the `server.properties`. Change the `broker.id` from `0` to `1`.
 <pre lang="markdown">
 broker.id=1
 </pre>
