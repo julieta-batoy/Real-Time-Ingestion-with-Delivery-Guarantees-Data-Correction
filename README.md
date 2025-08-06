@@ -50,7 +50,7 @@ set KAFKA_HEAP_OPTS=-Xmx512M -Xms512M
 Then launch Kafka:
 <pre lang="cmd">
 cd C:\kafka
-.\bin\windows\zookeeper-server-start.bat .\config\zookeeper.properties
+.\bin\windows\kafka-server-start.bat .\config\server.properties
 </pre>
 
 ### 5. Run Producer
